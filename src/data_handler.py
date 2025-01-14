@@ -42,6 +42,7 @@ class CustomDataGen:
         Delete all generated files in the data path.
         PRE: None
         POST: All files in the data directory are removed.
+        RAISES: FileNotFoundError if the data directory does not exist.
         """
         try:
             for file in os.listdir(self.data_path):
