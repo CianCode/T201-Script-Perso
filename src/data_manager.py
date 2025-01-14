@@ -11,7 +11,7 @@ class CustomFetcher:
         PRE: None
         POST: Sets up the data path for operations.
         """
-        self.data_path = os.path.expanduser("~/data_tool")
+        self.data_path = os.path.join(os.path.dirname(os.getcwd()), "data")
 
     def get_data(self, filters=None, sort_field=None, reverse=False, selected_columns=None):
         """

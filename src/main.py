@@ -6,54 +6,77 @@ from utility import CustomUtils
 VALID_OPERATORS = ["==", "!=", "<", ">", "<=", ">="]
 COLUMN_NAMES = ["Product ID", "Company", "Origin", "Category", "Stock", "Unit Price"]
 
-def execute_script():
-    """
-    Execute the main script actions.
-    PRE: None
-    POST: Executes the specified operation (create, clean, retrieve) based on user input.
-    """
+
+def display_menu():
+    print("\nWelcome to the Data Operations Tool")
+    print("1. Create JSON data files")
+    print("2. Clean all data files")
+    print("3. Retrieve and process data")
+    print("4. Exit")
+
+    choice = input("Select an option (1-4): ").strip()
+    return choice
+
+
+def execute_menu():
     data_generator, data_fetcher, utility_tools = CustomDataGen(), CustomFetcher(), CustomUtils()
 
-    parser = argparse.ArgumentParser(description="Data Operations Tool")
-    subparsers = parser.add_subparsers(dest="action", required=True)
+    while True:
+        choice = display_menu()
 
-    gen_parser = subparsers.add_parser("create", help="Create JSON data files")
-    gen_parser.add_argument("-f", "--files", type=int, default=10, help="Number of files to create")
-    gen_parser.add_argument("-r", "--rows", type=int, default=200, help="Rows per file")
+        if choice == "1":
+            files = int(input("Enter the number of files to create (default 10): ") or 10)
+            rows = int(input("Enter the number of rows per file (default 200): ") or 200)
 
-    subparsers.add_parser("clean", help="Remove all data files")
+            if utility_tools.confirm_action(f"Create {files} files with {rows} rows each?"):
+                data_generator.create_files(files, rows)
+                print("[DataTool] Files created successfully")
+            else:
+                print("[DataTool] Operation aborted")
 
-    fetch_parser = subparsers.add_parser("retrieve", help="Retrieve and process data")
-    fetch_parser.add_argument("-f", "--filter", action="append", nargs=3, metavar=("FIELD", "OPERATOR", "VALUE"), help="Apply filters")
-    fetch_parser.add_argument("-s", "--sort", choices=COLUMN_NAMES, help="Sort by field")
-    fetch_parser.add_argument("-r", "--reverse", action="store_true", help="Reverse sorting order")
-    fetch_parser.add_argument("-c", "--columns", action="append", choices=COLUMN_NAMES, help="Specify columns")
+        elif choice == "2":
+            if utility_tools.confirm_action("Confirm deletion of all files?"):
+                data_generator.remove_files()
+                print("[DataTool] Files deleted successfully")
+            else:
+                print("[DataTool] Operation aborted")
 
-    args = parser.parse_args()
+        elif choice == "3":
+            filters = []
+            while True:
+                add_filter = input("Add a filter? (y/n): ").strip().lower()
+                if add_filter == "y":
+                    field = input(f"Enter field to filter ({', '.join(COLUMN_NAMES)}): ").strip()
+                    operator = input(f"Enter operator ({', '.join(VALID_OPERATORS)}): ").strip()
+                    value = input("Enter value: ").strip()
+                    filters.append((field, operator, value))
+                else:
+                    break
 
-    if args.action == "create":
-        if utility_tools.confirm_action(f"Create {args.files} files with {args.rows} rows each?"):
-            data_generator.create_files(args.files, args.rows)
-            print("[DataTool] Files created successfully")
+            sort = input(f"Sort by field ({', '.join(COLUMN_NAMES)} or leave blank): ").strip()
+            reverse = input("Reverse sort order? (y/n): ").strip().lower() == "y"
+            columns = input(f"Specify columns to display ({', '.join(COLUMN_NAMES)} or leave blank): ").strip().split(
+                ",")
+            columns = [col.strip() for col in columns if col.strip() in COLUMN_NAMES] or None
+
+            data = data_fetcher.get_data(filters, sort if sort else None, reverse, columns)
+            for entry in data:
+                print(entry)
+
+            analytics = data_fetcher.generate_summary(data)
+            print(analytics)
+            print("[DataTool] Data retrieved successfully")
+
+        elif choice == "4":
+            print("[DataTool] Exiting...")
+            break
+
         else:
-            print("[DataTool] Operation aborted")
+            print("[DataTool] Invalid choice. Please try again.")
 
-    elif args.action == "clean":
-        if utility_tools.confirm_action("Confirm deletion of all files?"):
-            data_generator.remove_files()
-            print("[DataTool] Files deleted successfully")
-
-    elif args.action == "retrieve":
-        filters = [(key, op, value) for key, op, value in (args.filter or [])]
-        data = data_fetcher.get_data(filters, args.sort, args.reverse, args.columns)
-        for entry in data:
-            print(entry)
-        analytics = data_fetcher.generate_summary(data)
-        print(analytics)
-        print("[DataTool] Data retrieved successfully")
 
 if __name__ == "__main__":
     try:
-        execute_script()
+        execute_menu()
     except KeyboardInterrupt:
         print("\n[DataTool] Process interrupted")
